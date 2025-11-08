@@ -33,7 +33,7 @@ public class TwseData {
 		String modelName = modelNames[modelIndex];
 		
 		String financeData = """
-				有一檔股票財金資訊如下: 證券代號=2330 ,證券名稱= 台積電,收盤價=21.75,殖利率(%)= 4.60,股利年度=113,本益比=21.12,股價淨值比=0.76,財報年/季=114/2"
+				有一檔股票財金資訊如下: 證券代號=2330 證券名稱= 台積電 收盤價=21.75 殖利率(%)= 4.60 股利年度=113 本益比=21.12 股價淨值比=0.76 財報年/季=114/2
 				""";
 		
 		// 問題文字
@@ -42,6 +42,8 @@ public class TwseData {
 		
 		// question 前要加上 fianceData <= prompt(提示, 給 AI 的說明書, 讓 AI 更具有充分資料解決問題)
 		String prompt = question = financeData + " 請問: " + question;
+		// 消除換行符號
+		prompt = prompt.replaceAll("\n", "");
 		
 		scanner.close();
 		// 是否支援 stream
