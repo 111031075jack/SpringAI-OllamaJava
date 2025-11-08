@@ -26,29 +26,33 @@ public class TwseData {
 	public static void main(String[] args) throws Exception {
 		Scanner scanner = new Scanner(System.in);
 		
-		// 選擇模型(0:llama3.1:8b, 1:qwen3:4b, 2:qwen3:0.6b, 3:martin7r/fiance-ollama-8b:fp16)
-		String[] modelNames = {"llama3.1:8b", "qwen3:4b", "qwen3:0.6b", "martin7r/fiance-ollama-8b:fp16"};
-		System.out.print("請選擇模型(0:llama3.1:8b, 1:qwen3:4b, 2:qwen3:0.6b, 3:martin7r/fiance-ollama-8b:fp16) => ");
+		// 選擇模型(0:llama3.1:8b, 1:qwen3:4b, 2:qwen3:0.6b, 3:martain7r/finance-llama-8b:fp16)
+		String[] modelNames = {"llama3.1:8b", "qwen3:4b", "qwen3:0.6b", "martain7r/finance-llama-8b:fp16"};
+		System.out.print("請選擇模型(0:llama3.1:8b, 1:qwen3:4b, 2:qwen3:0.6b, 3:martain7r/finance-llama-8b:fp16) => ");
 		int modelIndex = scanner.nextInt();
 		String modelName = modelNames[modelIndex];
 		
+		/*
 		String financeData = """
-				有一檔股票財金資訊如下: 證券代號=2330 證券名稱= 台積電 收盤價=21.75 殖利率(%)= 4.60 股利年度=113 本益比=21.12 股價淨值比=0.76 財報年/季=114/2
+				有一檔股票財金資訊如下: 證券代號=2330 證券名稱=台積電 收盤價=1460.00 殖利率(%)=1.16 股利年度=113 本益比=25.94 股價淨值比=8.26 財報年/季=114/2
 				""";
+		 */
+		System.out.print("請輸入股票代號(例如:2330) =>");
+		String symbol = scanner.next();
+		String fianceData = TwseDataDownload.getStringDataWithPrompt(symbol);
 		
 		// 問題文字
 		System.out.print("請輸入問題(不要有空格) => ");
 		String question = scanner.next();
 		
-		// question 前要加上 fianceData <= prompt(提示, 給 AI 的說明書, 讓 AI 更具有充分資料解決問題)
-		String prompt = question = financeData + " 請問: " + question;
+		// question 前面要加上 financeData <= prompt(提示語, 給 AI 的說明書, 讓 AI 更具有充分資料解決問題)
+		String prompt = fianceData + " 請問:" + question;
 		// 消除換行符號
 		prompt = prompt.replaceAll("\n", "");
 		
-		scanner.close();
 		// 是否支援 stream
 		Boolean supportStream = true;
-		
+		scanner.close();
 		
 		//---------------------------------------------------
 		// 1. 建立 JSON 請求內容
