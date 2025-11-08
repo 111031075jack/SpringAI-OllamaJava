@@ -5,7 +5,6 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.util.Timer;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -17,6 +16,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 
 import ollama.generate.QueryExecutor.QueryCallback;
 
@@ -24,6 +24,7 @@ public class QueryGUI extends JFrame {
 	// 視覺元件
 	private JComboBox<String> modelCombo;
 	private JTextField symbolField;
+	private JComboBox<String> askDefaultCombo;
 	private JTextField askField;
 	private JButton queryBtn;
 	private JTextArea resultArea; 
@@ -35,8 +36,22 @@ public class QueryGUI extends JFrame {
 	
 	// 建立 QueryExecutor 實例
 	private QueryExecutor queryExecutor = new QueryExecutor();
+	
 	private static final String[] MODEL_NAMES = {
 			"llama3.1:8b", "qwen3:4b", "qwen3:0.6b", "martain7r/finance-llama-8b:fp16"
+	};
+	
+	private static final String[] ASK_DEFAULT = {
+			"搶選擇",
+			"基於目前本益比、殖利率和股價淨值比，是否適合買入該股票？", 
+			"請分析該股票目前的估值是否合理，是否有高估或低估的風險？",
+			"該股票的財務指標顯示其股價有何投資潛力和風險？",
+			"依據本益比與殖利率，預測該股票未來1年的股價走勢或投資價值？",
+			"該股票的股價淨值比分別對應哪些風險和收益機會？",
+			"請基於目前財務指標，給出該股票的多空建議（買入/持有/賣出）。",
+			"如何解讀該股票的股利發放趨勢及其對股票價值的影響？",
+			"該股票目前的財務狀況是否支持持續派發穩定股利？",
+			"需要注意哪些指標反映出該股票可能的經營或市場風險？"
 	};
 	
 	private QueryGUI() {
@@ -99,7 +114,7 @@ public class QueryGUI extends JFrame {
 		// 將元件加入到 formPanel 中
 		formPanel.add(symbolField, gbc);
 
-		// 創建 "股票代號:" 標籤元件 -------------------------
+		// 創建 "提問內容:" 標籤元件 -------------------------
 		JLabel askLabel = new JLabel("提問內容:");
 		// 元件放置位置
 		gbc.gridx = 0;
@@ -107,7 +122,7 @@ public class QueryGUI extends JFrame {
 		// 將元件加入到 formPanel 中
 		formPanel.add(askLabel, gbc);
 
-		// 創建 "股票代號:" 標籤元件 -------------------------
+		// 創建 "提問內容:" 標籤元件 -------------------------
 		askField = new JTextField(10);
 		// 元件放置位置
 		gbc.gridx = 1;
@@ -115,11 +130,19 @@ public class QueryGUI extends JFrame {
 		// 將元件加入到 formPanel 中
 		formPanel.add(askField, gbc);
 
+		// 創建 "罐頭內容" 標籤元件 -------------------------
+		askDefaultCombo = new JComboBox<String>(ASK_DEFAULT);
+		// 元件放置位置
+		gbc.gridx = 1;
+		gbc.gridy = 3;
+		// 將元件加入到 formPanel 中
+		formPanel.add(askDefaultCombo, gbc);
+		
 		// 創建 "股票代號:" 標籤元件 -------------------------
 		queryBtn = new JButton("查詢");
 		// 元件放置位置
 		gbc.gridx = 1;
-		gbc.gridy = 3;
+		gbc.gridy = 4;
 		// 設定 button 不填滿整個格子大小(預設大小即可)
 		gbc.fill = GridBagConstraints.NONE;
 		// 將元件加入到 formPanel 中
@@ -158,6 +181,11 @@ public class QueryGUI extends JFrame {
 	
 	// 初始監聽
 	private void initListeners() {
+		askDefaultCombo.addActionListener(e -> {
+			if(askDefaultCombo.getSelectedIndex() != 0) {
+			askField.setText((String)askDefaultCombo.getSelectedItem());
+			}
+		});
 		queryBtn.addActionListener(e -> onQueryClicked());
 	}
 	
@@ -179,6 +207,9 @@ public class QueryGUI extends JFrame {
 		// 關閉元件互動
 		disableInputs(true);
 		
+		// 啟動 loading 動畫
+		startLoadingAnimation();
+		
 		String fullPrompt = prompt + "" + askField.getText().trim();
 		QueryCallback callback = new QueryCallback() {
 			
@@ -196,6 +227,8 @@ public class QueryGUI extends JFrame {
 					resultArea.setText("\nHTTP 請求失敗, HTTP 狀態碼: " + code);
 					// 開啟元件互動
 					disableInputs(false);
+					// 關閉 loading 動畫
+					stopLoadingAnimation();
 				});
 				
 				
@@ -207,6 +240,8 @@ public class QueryGUI extends JFrame {
 					resultArea.setText("\n執行錯誤: " + message);
 					// 開啟元件互動
 					disableInputs(false);
+					// 關閉 loading 動畫
+					stopLoadingAnimation();
 				});
 				
 			}
@@ -217,6 +252,8 @@ public class QueryGUI extends JFrame {
 					resultArea.append("\n查詢完成 !");
 					// 開啟元件互動
 					disableInputs(false);
+					// 關閉 loading 動畫
+					stopLoadingAnimation();
 				});
 			}
 		};
@@ -253,6 +290,32 @@ public class QueryGUI extends JFrame {
 		askField.setEnabled(!disable);
 	}
 	
+	// 動畫開始
+	private void startLoadingAnimation() {
+		frameIndex = 0;
+		animTimer = new Timer(350, e -> {
+			queryBtn.setText(loadingFrames[frameIndex]);
+			frameIndex = (frameIndex + 1) % loadingFrames.length;
+			/**
+			 * loadingFrames.length=4
+			 * frameIndex = 1 % 4 = 1
+			 * frameIndex = 2 % 4 = 2
+			 * frameIndex = 3 % 4 = 3
+			 * frameIndex = 4 % 4 = 0
+			 * frameIndex = 1 % 4 = 1
+			 * 
+			 * */
+		});
+		animTimer.start();
+	}
+	
+	// 動畫結束
+	private void stopLoadingAnimation() {
+		if(animTimer != null) {
+			animTimer.stop();
+		}
+		queryBtn.setText("查詢");
+	}
 	
 	public static void main(String[] args) {
 		SwingUtilities.invokeLater(() -> {
