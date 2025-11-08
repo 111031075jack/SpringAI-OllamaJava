@@ -11,6 +11,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -126,9 +127,10 @@ public class QueryGUI extends JFrame {
 
 		// 創建 "多行文本區域:" 元件 -------------------------
 		resultArea = new JTextArea();
+		resultArea.setEditable(false); // 使用者不可編輯
 		resultArea.setLineWrap(true); // 允許自動換行
 		resultArea.setWrapStyleWord(true); // 設定自動換行時, 避免單詞被切斷
-		resultArea.setFont(new Font("Arial", Font.PLAIN, 16)); // 設定字體, 風格, 大小
+		resultArea.setFont(new Font("sansserif", Font.PLAIN, 16)); // 設定字體, 風格, 大小
 		// 建立 JScrollPane 容器用來包覆 resultArea 用於滾動條的支援
 		JScrollPane resultScroll = new JScrollPane(resultArea); 
 		resultScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); // 總是顯示垂直滾動條
@@ -162,11 +164,21 @@ public class QueryGUI extends JFrame {
 	// 當查詢鍵倍按下時所要做的事
 	private void onQueryClicked() {
 		
+		// 資料驗證
+		if(!validateInput()) return;
+		
 		resultArea.setText(""); // 清空上一筆查詢結果
 		// AI 所需相關參數建立
 		String modelName = (String) modelCombo.getSelectedItem();
 		String symbol = symbolField.getText().trim();
 		String prompt = TwseDataDownload.getStringDataWithPrompt(symbol);
+		
+		// 驗證 prompt 是否有資料
+		if(!validatePrompt(prompt)) return;
+		
+		// 關閉元件互動
+		disableInputs(true);
+		
 		String fullPrompt = prompt + "" + askField.getText().trim();
 		QueryCallback callback = new QueryCallback() {
 			
@@ -182,6 +194,8 @@ public class QueryGUI extends JFrame {
 			public void onHttpError(int code) {
 				SwingUtilities.invokeLater(() -> {
 					resultArea.setText("\nHTTP 請求失敗, HTTP 狀態碼: " + code);
+					// 開啟元件互動
+					disableInputs(false);
 				});
 				
 				
@@ -191,6 +205,8 @@ public class QueryGUI extends JFrame {
 			public void onError(String message) {
 				SwingUtilities.invokeLater(() -> {
 					resultArea.setText("\n執行錯誤: " + message);
+					// 開啟元件互動
+					disableInputs(false);
 				});
 				
 			}
@@ -199,6 +215,8 @@ public class QueryGUI extends JFrame {
 			public void onComplete() {
 				SwingUtilities.invokeLater(() -> {
 					resultArea.append("\n查詢完成 !");
+					// 開啟元件互動
+					disableInputs(false);
 				});
 			}
 		};
@@ -208,6 +226,33 @@ public class QueryGUI extends JFrame {
 		
 		
 	}
+	
+	// 資料驗證(是否有輸入資料)
+	private Boolean validateInput() {
+		if(symbolField.getText().trim().isEmpty() || askField.getText().trim().isEmpty()) {
+			JOptionPane.showMessageDialog(this, "請填入股票代號與提問內容");
+			return false;
+		}
+		return true;
+	}
+	
+	// 資料驗證(是否有輸入資料)
+	private Boolean validatePrompt(String prompt) {
+		if(prompt == null) {
+			JOptionPane.showMessageDialog(this, "查無股票代號");
+			return false;
+		}
+		return true;
+	}
+	
+	// 是否關閉元件互動
+	private void disableInputs(boolean disable) {
+		queryBtn.setEnabled(!disable);
+		modelCombo.setEnabled(!disable);
+		symbolField.setEnabled(!disable);
+		askField.setEnabled(!disable);
+	}
+	
 	
 	public static void main(String[] args) {
 		SwingUtilities.invokeLater(() -> {
