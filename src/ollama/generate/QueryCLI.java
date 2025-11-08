@@ -31,7 +31,7 @@ public class QueryCLI {
 			
 			@Override
 			public void onResponseChar(char ch) {
-				System.out.println(ch);
+				System.out.print(ch);
 				
 			}
 			
@@ -56,7 +56,7 @@ public class QueryCLI {
 		// 執行查詢
 		queryExecutor.execute(modelName, fullPrompt, callback);
 		
-		
+		scanner.close();
 		
 	}
 }
