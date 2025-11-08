@@ -1,6 +1,7 @@
 package ollama.generate;
 
 import java.awt.BorderLayout;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -11,9 +12,12 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+
+import ollama.generate.QueryExecutor.QueryCallback;
 
 public class QueryGUI extends JFrame {
 	// 視覺元件
@@ -35,7 +39,8 @@ public class QueryGUI extends JFrame {
 	};
 	
 	private QueryGUI() {
-		initUI();
+		initUI(); // 畫面初始
+		initListeners(); // 初始監聽
 	}
 	
 	// 初始 UI 配置
@@ -59,7 +64,7 @@ public class QueryGUI extends JFrame {
 		// 元件會在水平方向伸展
 		gbc.fill = GridBagConstraints.HORIZONTAL;
 		
-		// 創建第一個標籤元件
+		// 創建 "選擇模型:" 標籤元件 -------------------------
 		JLabel modeLabel = new JLabel("選擇模型:");
 		
 		// 元件放置位置
@@ -68,9 +73,136 @@ public class QueryGUI extends JFrame {
 		
 		// 將元件加入到 formPanel 中
 		formPanel.add(modeLabel, gbc);
+
+		// 創建 "下拉選單:" 標籤元件 -------------------------
+		modelCombo = new JComboBox<>(MODEL_NAMES);
+		// 元件放置位置
+		gbc.gridx = 1;
+		gbc.gridy = 0;
+		// 將元件加入到 formPanel 中
+		formPanel.add(modelCombo, gbc);
+
+		// 創建 "股票代號:" 標籤元件 -------------------------
+		JLabel symbolLabel = new JLabel("股票代號");
+		// 元件放置位置
+		gbc.gridx = 0;
+		gbc.gridy = 1;
+		// 將元件加入到 formPanel 中
+		formPanel.add(symbolLabel, gbc);
+
+		// 創建 "輸入代號:" 標籤元件 -------------------------
+		symbolField = new JTextField(10);
+		// 元件放置位置
+		gbc.gridx = 1;
+		gbc.gridy = 1;
+		// 將元件加入到 formPanel 中
+		formPanel.add(symbolField, gbc);
+
+		// 創建 "股票代號:" 標籤元件 -------------------------
+		JLabel askLabel = new JLabel("提問內容:");
+		// 元件放置位置
+		gbc.gridx = 0;
+		gbc.gridy = 2;
+		// 將元件加入到 formPanel 中
+		formPanel.add(askLabel, gbc);
+
+		// 創建 "股票代號:" 標籤元件 -------------------------
+		askField = new JTextField(10);
+		// 元件放置位置
+		gbc.gridx = 1;
+		gbc.gridy = 2;
+		// 將元件加入到 formPanel 中
+		formPanel.add(askField, gbc);
+
+		// 創建 "股票代號:" 標籤元件 -------------------------
+		queryBtn = new JButton("查詢");
+		// 元件放置位置
+		gbc.gridx = 1;
+		gbc.gridy = 3;
+		// 設定 button 不填滿整個格子大小(預設大小即可)
+		gbc.fill = GridBagConstraints.NONE;
+		// 將元件加入到 formPanel 中
+		formPanel.add(queryBtn, gbc);
+
+		// 創建 "多行文本區域:" 元件 -------------------------
+		resultArea = new JTextArea();
+		resultArea.setLineWrap(true); // 允許自動換行
+		resultArea.setWrapStyleWord(true); // 設定自動換行時, 避免單詞被切斷
+		resultArea.setFont(new Font("Arial", Font.PLAIN, 16)); // 設定字體, 風格, 大小
+		// 建立 JScrollPane 容器用來包覆 resultArea 用於滾動條的支援
+		JScrollPane resultScroll = new JScrollPane(resultArea); 
+		resultScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); // 總是顯示垂直滾動條
+		
+		// 創建 "警語" 元件 -------------------------
+		JLabel footerLabel = new JLabel("** 投資之前，應該充分了解相關公告等相關信息，以便做出明智的投資決策 **");
+		footerLabel.setFont(new Font("sansserif", Font.PLAIN, 14)); // 設定字體, 風格, 大小
+		
 		
 		// 將 formPanel 放在 QueryGUI 主畫面上方
 		add(formPanel, BorderLayout.NORTH);
+		
+		// 將 resultScroll 放在 QueryGUI 主畫面中央
+		add(resultScroll, BorderLayout.CENTER);
+
+		// 將 resultScroll 放在 QueryGUI 主畫面下方
+		add(footerLabel, BorderLayout.SOUTH);
+		
+		// 預設內容
+		modelCombo.setSelectedIndex(0); // 預設值 = 0
+		symbolField.setText("2330");
+		askField.setText("請建議此檔股票的買賣區間");
+		
+	}
+	
+	private void initListeners() {
+		queryBtn.addActionListener(e -> onQueryClicked());
+	}
+	
+	private void onQueryClicked() {
+		
+		resultArea.setText(""); // 清空上一筆查詢結果
+		// AI 所需相關參數建立
+		String modelName = (String) modelCombo.getSelectedItem();
+		String symbol = symbolField.getText().trim();
+		String prompt = TwseDataDownload.getStringDataWithPrompt(symbol);
+		String fullPrompt = prompt + "" + askField.getText().trim();
+		QueryCallback callback = new QueryCallback() {
+			
+			@Override
+			public void onResponseChar(char ch) {
+				SwingUtilities.invokeLater(() -> {
+					resultArea.append(String.valueOf(ch));
+				});
+				
+			}
+			
+			@Override
+			public void onHttpError(int code) {
+				SwingUtilities.invokeLater(() -> {
+					resultArea.setText("\nHTTP 請求失敗, HTTP 狀態碼: " + code);
+				});
+				
+				
+			}
+			
+			@Override
+			public void onError(String message) {
+				SwingUtilities.invokeLater(() -> {
+					resultArea.setText("\n執行錯誤: " + message);
+				});
+				
+			}
+			
+			@Override
+			public void onComplete() {
+				SwingUtilities.invokeLater(() -> {
+					resultArea.append("\n查詢完成 !");
+				});
+				
+				
+			}
+		};
+		
 		
 	}
 	
