@@ -154,10 +154,12 @@ public class QueryGUI extends JFrame {
 		
 	}
 	
+	// 初始監聽
 	private void initListeners() {
 		queryBtn.addActionListener(e -> onQueryClicked());
 	}
 	
+	// 當查詢鍵倍按下時所要做的事
 	private void onQueryClicked() {
 		
 		resultArea.setText(""); // 清空上一筆查詢結果
@@ -198,10 +200,11 @@ public class QueryGUI extends JFrame {
 				SwingUtilities.invokeLater(() -> {
 					resultArea.append("\n查詢完成 !");
 				});
-				
-				
 			}
 		};
+		
+		// 執行
+		queryExecutor.execute(modelName, fullPrompt, callback);
 		
 		
 	}
