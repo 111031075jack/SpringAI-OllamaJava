@@ -135,16 +135,25 @@ public class OllamaChatExample {
 						
 						String line = null;
 						Gson gson = new Gson();
+						StringBuilder totalContent = new StringBuilder(); // 將所有逐字 content 集合起來
 						while((line = reader.readLine()) != null) {
 							//System.out.println(line); // 逐行顯示
 							// {"model":"qwen3:4b","created_at":"2025-11-01T07:37:50.4647587Z","response":"您","done":false}
 							JsonObject obj = gson.fromJson(line, JsonObject.class);
-							if(obj.get("response") == null) {
-								continue;
+							// System.out.println(obj);
+							if(obj.has("message") && obj.get("message").getAsJsonObject().has("content")) {
+								String content = obj.get("message").getAsJsonObject().get("content").getAsString();
+								totalContent.append(content);
+								System.out.print(content);
 							}
-							String responseContent = obj.get("response").getAsString();
-							System.out.print(responseContent);
 						}
+						
+						// 新增模型的回應到對話歷史中
+						JsonObject assistantMessage = new JsonObject();
+						assistantMessage.addProperty("role", "assistant");
+						assistantMessage.addProperty("content", totalContent.toString());
+						messages.add(assistantMessage);
+						
 					}
 					
 				} else { // "stream": false
@@ -153,11 +162,10 @@ public class OllamaChatExample {
 					System.out.printf("完整回應: %s%n", responseBody);
 				}
 				
+				System.out.println("\n回應完畢 !\n");
 			}
 			
-			
-			
-			scanner.nextLine();
+			//scanner.nextLine();
 		}
 		
 		
