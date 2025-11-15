@@ -22,6 +22,8 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
+import ollama.chat.db.DataFetcher;
+
 /**
  * QueryChatGUI 是一個基於 Swing 的簡易聊天介面範例，
  * 配合 QueryChatExecutor 調用本地 Ollama Chat API，
@@ -50,28 +52,11 @@ public class QueryChatGUI extends JFrame {
     };
 
     // 預設提問列表，設計為展示聊天上下文記憶特性的例子劇本
-    private static final String[] ASK_DEFAULT = {
-        "請選擇",
-    	"我的名字是阿正,請你記住",
-    	"請問我叫甚麼名字?",
-    	"我喜歡籃球,請你記住",
-    	"請問我喜歡甚麼運動",
-    	"幫我記住我的生日是6/14",
-    	"請問我的生日是?",
-    	"請幫我記住我喜歡吃炸魷魚",
-    	"請問我喜歡吃甚麼口味的炸物",
-    	"請記住我喜歡的人是Nana",
-    	"我喜歡誰?",
-    	"請記住我住台中",
-    	"我住哪裡?",
-    	"我喜歡的程式語言是 Java",
-    	"請問我喜歡的程式語言是 C++嗎?",
-    	"請總結剛才我們聊過的事情"
-    };
+    private static final String[] ASK_DEFAULT = DataFetcher.loadPromptsFromDB();
 
     // 用於保存整個多輪聊天歷史，格式為List<Map<String,String>>，
     // 每條訊息包含role(user或assistant)與content文字。
-    private final List<Map<String, String>> messageHistory = new ArrayList<>();
+    private final List<Map<String, String>> messageHistory = DataFetcher.loadChatHistory();
 
     /**
      * 建構子，執行 UI 初始化與事件監聽設定
@@ -214,8 +199,14 @@ public class QueryChatGUI extends JFrame {
 				// 回覆完成後將 assistantContent 加入到歷史資料集合中
 				Map<String, String> assistantMessage = new HashMap<>();
 				assistantMessage.put("role", "assistant");
-				assistantMessage.put("content", assistantMessage.toString());
+				assistantMessage.put("content", assistantContent.toString());
 				messageHistory.add(assistantMessage);
+				
+				// log 儲存 ----------------------------------------------
+				String userInput = askField.getText();
+				String botMessage = assistantContent.toString();
+				DataFetcher.saveLog(userInput, botMessage);
+				//--------------------------------------------------------
 				
 				resultArea.append("\n\n=== 查詢完成 ===\n");
 				disableInputs(false);
