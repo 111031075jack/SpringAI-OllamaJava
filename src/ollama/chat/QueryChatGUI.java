@@ -47,6 +47,8 @@ public class QueryChatGUI extends JFrame {
     private QueryChatExecutor queryExecutor = new QueryChatExecutor();
 
     // 支援選擇的模型名稱
+    // homework
+    // MODEL_NAMES 可透過 http://localhost:11434/api/tags 得到最新模型資訊
     private static final String[] MODEL_NAMES = {
         "llama3.1:8b", "qwen3:4b", "qwen3:0.6b", "martain7r/finance-llama-8b:fp16"
     };
