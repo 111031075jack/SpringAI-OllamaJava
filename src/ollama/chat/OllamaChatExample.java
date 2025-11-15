@@ -78,7 +78,7 @@ public class OllamaChatExample {
 			JsonObject userMessage = new JsonObject();
 			userMessage.addProperty("role", "user");
 			userMessage.addProperty("content", question);
-			messages.add(userMessage);
+			messages.add(userMessage); 
 			
 			//--------------------------------------------------------
 			// 1. 建立 JSON 請求內容
