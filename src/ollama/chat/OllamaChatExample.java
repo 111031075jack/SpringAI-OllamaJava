@@ -62,7 +62,7 @@ public class OllamaChatExample {
 		List<JsonObject> messages = new ArrayList<>();
 		
 		// 是否支援 stream
-		Boolean supportStream = true;
+		Boolean supportStream = false;
 		
 		// 與AI持續對話
 		while(true) {
@@ -160,6 +160,17 @@ public class OllamaChatExample {
 					String responseBody = response.body().string();
 					System.out.printf("%n回應碼: %s%n", response.code());
 					System.out.printf("完整回應: %s%n", responseBody);
+					
+					// 新增模型的回應到對話歷史中
+					Gson gson = new Gson();
+					JsonObject obj = gson.fromJson(responseBody, JsonObject.class);
+					if(obj.has("message") && obj.get("message").getAsJsonObject().has("content")) {
+						String content = obj.get("message").getAsJsonObject().get("content").getAsString();
+						JsonObject assistantMessage = new JsonObject();
+						assistantMessage.addProperty("role", "assistant");
+						assistantMessage.addProperty("content", content);
+						messages.add(assistantMessage);
+					}
 				}
 				
 				System.out.println("\n回應完畢 !\n");
